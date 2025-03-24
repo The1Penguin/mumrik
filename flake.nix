@@ -2,70 +2,53 @@
   description = "mumrik";
 
   inputs = {
-    flake-parts = {
-      url = "github:hercules-ci/flake-parts";
-      inputs.nixpkgs-lib.follows = "nixpkgs";
-    };
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    crate2nix.url = "github:nix-community/crate2nix";
-
-    # Development
-
-    devshell = {
-      url = "github:numtide/devshell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    utils.url = "github:numtide/flake-utils";
   };
 
-  nixConfig.allow-import-from-derivation = true;
+  outputs = {
+    self,
+    nixpkgs,
+    utils,
+    ...
+  }:
+    utils.lib.eachDefaultSystem
+    (
+      system: let
+        pkgs = import nixpkgs {inherit system;};
+        toolchain = pkgs.rustPlatform;
+      in rec
+      {
+        packages.default = toolchain.buildRustPackage {
+          pname = "mumrik";
+          version = "0.1.0";
+          src = ./.;
+          cargoLock.lockFile = ./Cargo.lock;
 
-  outputs =
-    inputs @ { self
-    , nixpkgs
-    , flake-parts
-    , rust-overlay
-    , crate2nix
-    , ...
-    }: flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-        "x86_64-darwin"
-        "aarch64-darwin"
-      ];
-
-      imports = [
-        ./nix/rust-overlay/flake-module.nix
-        ./nix/devshell/flake-module.nix
-      ];
-
-      perSystem = { system, pkgs, lib, inputs', ... }:
-        let
-          # If you dislike IFD, you can also generate it with `crate2nix generate` 
-          # on each dependency change and import it here with `import ./Cargo.nix`.
-          cargoNix = inputs.crate2nix.tools.${system}.appliedCargoNix {
-            name = "mumrik";
-            src = ./.;
-          };
-        in
-        rec {
-          checks = {
-            rustnix = cargoNix.rootCrate.build.override {
-              runTests = true;
-            };
-          };
-
-          packages = {
-            rustnix = cargoNix.rootCrate.build;
-            default = packages.rustnix;
-
-            inherit (pkgs) rust-toolchain;
-
-            rust-toolchain-versions = pkgs.writeScriptBin "rust-toolchain-versions" ''
-              ${pkgs.rust-toolchain}/bin/cargo --version
-              ${pkgs.rust-toolchain}/bin/rustc --version
-            '';
-          };
+          # For other makeRustPlatform features see:
+          # https://github.com/NixOS/nixpkgs/blob/master/doc/languages-frameworks/rust.section.md#cargo-features-cargo-features
         };
-    };
+
+        apps.default = utils.lib.mkApp {drv = packages.default;};
+
+        devShells.default = pkgs.mkShell {
+          buildInputs = with pkgs; [
+            (with toolchain; [
+              cargo
+              rustc
+              rustLibSrc
+            ])
+            clippy
+            rustfmt
+            rust-analyzer
+            pkg-config
+            gdb
+            lldb
+          ];
+
+          # Specify the rust-src path (many editors rely on this)
+          RUST_SRC_PATH = "${toolchain.rustLibSrc}";
+        };
+      }
+    );
 }
