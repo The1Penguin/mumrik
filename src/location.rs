@@ -1,23 +1,11 @@
-#[derive(Clone, Default, Debug, PartialEq)]
-pub struct Coord {
-    pub long: f64,
-    pub lat: f64,
-}
+use monsoon::Moonsoon;
 
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct Location {
-    pub coord: Coord,
+    pub coord: Params,
     pub name: String,
 }
 
-impl Coord {
-    pub fn new(long: f64, lat:f64) -> Self {
-        Coord {
-            long,
-            lat
-        }
-    }
-}
 
 impl Location {
     pub fn new_name(name: String) {
@@ -28,10 +16,11 @@ impl Location {
         todo!("Derive the name from the coord");
     }
 
-    pub fn new(name: String, long: f64, lat: f64) -> Location {
+    pub fn new(name: String, long: f64, lat: f64) -> Result<Location> {
+        let coord = Params::new(lat, lon, None)?;
         Location {
             name,
-            coord: Coord::new(long,lat)
+            coord
         }
     }
 }
