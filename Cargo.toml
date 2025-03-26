@@ -8,3 +8,4 @@ edition = "2021"
 
 [dependencies]
 monsoon = "0.1.1"
+serde_json = { version = "1.0.140", features = ["std"] }

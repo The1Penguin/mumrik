@@ -1,9 +1,9 @@
-use location;
+mod location;
 
 struct State {
     user_agent: String,
-    cron_time: _,
-    location: Location
+    //cron_time: _,
+    location: location::Location
 }
 
 fn main() {

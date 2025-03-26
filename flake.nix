@@ -27,6 +27,12 @@
 
           # For other makeRustPlatform features see:
           # https://github.com/NixOS/nixpkgs/blob/master/doc/languages-frameworks/rust.section.md#cargo-features-cargo-features
+          nativeBuildInputs = with pkgs; [
+            pkg-config
+            openssl
+            openssl.dev
+          ];
+          PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
         };
 
         apps.default = utils.lib.mkApp {drv = packages.default;};
